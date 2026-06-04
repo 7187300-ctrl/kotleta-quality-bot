@@ -13,10 +13,10 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8891826393:AAF2q6sBRf1StTpKsxZmbMQ0bhjAUMMMzrI")
+BOT_TOKEN = "8891826393:AAF2q6sBRf1StTpKsxZmbMQ0bhjAUMMMzrI"
 ADMIN_IDS = [213356772, 300594899]
-PORT = int(os.environ.get("PORT", 8443))
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
+PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = "https://kotleta-quality-bot.onrender.com"
 
 TASTE, APPEARANCE, TEXTURE, ROAST, STABILITY, NOTES = range(6)
 
@@ -98,9 +98,7 @@ async def handle_taste(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     score = int(query.data.split(":")[1])
     context.user_data["taste"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{score}/5*\n\n"
-        "Шаг 2 из 5\n\n"
-        "👁 *ВНЕШНИЙ ВИД* — поставь оценку от 0 до 5:",
+        f"✅ Вкус: *{score}/5*\n\nШаг 2 из 5\n\n👁 *ВНЕШНИЙ ВИД* — поставь оценку от 0 до 5:",
         parse_mode="Markdown",
         reply_markup=score_keyboard("appearance"),
     )
@@ -113,10 +111,7 @@ async def handle_appearance(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     score = int(query.data.split(":")[1])
     context.user_data["appearance"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{score}/5*\n\n"
-        "Шаг 3 из 5\n\n"
-        "🖐 *ПЛОТНОСТЬ ТЕКСТУРЫ* — поставь оценку от 0 до 5:",
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n✅ Внешний вид: *{score}/5*\n\nШаг 3 из 5\n\n🖐 *ПЛОТНОСТЬ ТЕКСТУРЫ* — поставь оценку от 0 до 5:",
         parse_mode="Markdown",
         reply_markup=score_keyboard("texture"),
     )
@@ -129,11 +124,7 @@ async def handle_texture(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     score = int(query.data.split(":")[1])
     context.user_data["texture"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
-        f"✅ Плотность текстуры: *{score}/5*\n\n"
-        "Шаг 4 из 5\n\n"
-        "🔥 *ЗАЖАРЕННОСТЬ* — поставь оценку от 0 до 5:",
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n✅ Внешний вид: *{context.user_data['appearance']}/5*\n✅ Плотность текстуры: *{score}/5*\n\nШаг 4 из 5\n\n🔥 *ЗАЖАРЕННОСТЬ* — поставь оценку от 0 до 5:",
         parse_mode="Markdown",
         reply_markup=score_keyboard("roast"),
     )
@@ -146,12 +137,7 @@ async def handle_roast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     score = int(query.data.split(":")[1])
     context.user_data["roast"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
-        f"✅ Плотность текстуры: *{context.user_data['texture']}/5*\n"
-        f"✅ Зажаренность: *{score}/5*\n\n"
-        "Шаг 5 из 5\n\n"
-        "🔁 *СТАБИЛЬНОСТЬ ВКУСА* — поставь оценку от 0 до 5:",
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n✅ Внешний вид: *{context.user_data['appearance']}/5*\n✅ Плотность текстуры: *{context.user_data['texture']}/5*\n✅ Зажаренность: *{score}/5*\n\nШаг 5 из 5\n\n🔁 *СТАБИЛЬНОСТЬ ВКУСА* — поставь оценку от 0 до 5:",
         parse_mode="Markdown",
         reply_markup=score_keyboard("stability"),
     )
@@ -164,13 +150,7 @@ async def handle_stability(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     score = int(query.data.split(":")[1])
     context.user_data["stability"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
-        f"✅ Плотность текстуры: *{context.user_data['texture']}/5*\n"
-        f"✅ Зажаренность: *{context.user_data['roast']}/5*\n"
-        f"✅ Стабильность вкуса: *{score}/5*\n\n"
-        "📝 *ЗАМЕЧАНИЯ* — напиши что понравилось или не понравилось.\n"
-        "Если замечаний нет — напиши: *нет*",
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n✅ Внешний вид: *{context.user_data['appearance']}/5*\n✅ Плотность текстуры: *{context.user_data['texture']}/5*\n✅ Зажаренность: *{context.user_data['roast']}/5*\n✅ Стабильность вкуса: *{score}/5*\n\n📝 *ЗАМЕЧАНИЯ* — напиши что понравилось или не понравилось.\nЕсли замечаний нет — напиши: *нет*",
         parse_mode="Markdown",
     )
     return NOTES
@@ -180,7 +160,6 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     user = update.effective_user
     notes = update.message.text
     now = datetime.now().strftime("%d.%m.%Y %H:%M")
-
     data = {
         "user_id": user.id,
         "username": user.username or "нет",
@@ -193,12 +172,9 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         "notes": notes,
         "created_at": now,
     }
-
     save_review(data)
-
     total = data["taste"] + data["appearance"] + data["texture"] + data["roast"] + data["stability"]
     avg = total / 5
-
     summary = (
         f"✅ *Оценка сохранена!*\n\n"
         f"👤 {data['first_name']} (@{data['username']})\n"
@@ -213,9 +189,7 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         f"📊 Средний балл: *{avg:.1f}/5*\n\n"
         f"📝 Замечания: {notes}"
     )
-
     await update.message.reply_text(summary, parse_mode="Markdown")
-
     notification = (
         f"🔔 *Новая оценка котлеты*\n\n"
         f"👤 {data['first_name']} (@{data['username']}) | ID: `{data['user_id']}`\n"
@@ -228,13 +202,11 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         f"📊 Средний балл: *{avg:.1f}/5*\n\n"
         f"📝 Замечания: {notes}"
     )
-
     for admin_id in ADMIN_IDS:
         try:
             await context.bot.send_message(chat_id=admin_id, text=notification, parse_mode="Markdown")
         except Exception as e:
             logger.error(f"Не удалось отправить уведомление {admin_id}: {e}")
-
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -249,29 +221,20 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("⛔ У вас нет доступа к статистике.")
         return
-
     conn = sqlite3.connect("quality.db")
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM reviews")
     total = c.fetchone()[0]
-
     if total == 0:
         await update.message.reply_text("📊 Оценок пока нет.")
         conn.close()
         return
-
     c.execute("SELECT AVG(taste), AVG(appearance), AVG(texture), AVG(roast), AVG(stability) FROM reviews")
     avgs = c.fetchone()
-
-    c.execute("""
-        SELECT first_name, username, taste, appearance, texture, roast, stability, notes, created_at
-        FROM reviews ORDER BY id DESC LIMIT 5
-    """)
+    c.execute("SELECT first_name, username, taste, appearance, texture, roast, stability, notes, created_at FROM reviews ORDER BY id DESC LIMIT 5")
     recent = c.fetchall()
     conn.close()
-
     overall = sum(avgs) / 5
-
     text = (
         f"📊 *Статистика контроля качества*\n\n"
         f"Всего оценок: *{total}*\n\n"
@@ -285,21 +248,17 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"📈 Общий средний балл: *{overall:.2f}/5*\n\n"
         f"*Последние 5 оценок:*\n"
     )
-
     for r in recent:
         avg_r = (r[2] + r[3] + r[4] + r[5] + r[6]) / 5
         text += f"\n• {r[0]} (@{r[1]}) — {r[8]}: *{avg_r:.1f}/5*"
         if r[7] and r[7].lower() != "нет":
             text += f"\n  📝 {r[7]}"
-
     await update.message.reply_text(text, parse_mode="Markdown")
 
 
 def main() -> None:
     init_db()
-
     application = Application.builder().token(BOT_TOKEN).build()
-
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("review", review_start)],
         states={
@@ -315,29 +274,16 @@ def main() -> None:
         per_chat=True,
         per_user=True,
     )
-
     application.add_handler(CommandHandler("start", start))
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("stats", stats))
-
-    logger.info("Бот запущен...")
-
-    if WEBHOOK_URL:
-        # Webhook режим для продакшена (Render Web Service)
-        logger.info(f"Запуск в webhook режиме на порту {PORT}")
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            webhook_url=WEBHOOK_URL,
-            drop_pending_updates=True,
-        )
-    else:
-        # Polling режим для локальной разработки
-        logger.info("Запуск в polling режиме (локально)")
-        application.run_polling(
-            allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True,
-        )
+    logger.info("Бот запущен в webhook режиме...")
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        webhook_url=WEBHOOK_URL,
+        drop_pending_updates=True,
+    )
 
 
 if __name__ == "__main__":

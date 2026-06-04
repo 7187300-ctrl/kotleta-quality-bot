@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import os
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -12,13 +13,15 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-BOT_TOKEN = "8891826393:AAF2q6sBRf1StTpKsxZmbMQ0bhjAUMMMzrI"
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8891826393:AAF2q6sBRf1StTpKsxZmbMQ0bhjAUMMMzrI")
 ADMIN_IDS = [213356772, 300594899]
+PORT = int(os.environ.get("PORT", 8443))
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
 
 TASTE, APPEARANCE, TEXTURE, ROAST, STABILITY, NOTES = range(6)
 
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -70,17 +73,20 @@ def score_keyboard(step: str) -> InlineKeyboardMarkup:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Добро пожаловать в систему контроля качества!\n\n"
-        "Напиши /review чтобы начать оценку котлеты.\n"
-        "Напиши /stats чтобы посмотреть статистику (только для администраторов)."
+        "👋 Добро пожаловать в систему контроля качества!\n\n"
+        "Команды:\n"
+        "/review — начать оценку котлеты\n"
+        "/stats — статистика (только администраторы)\n"
+        "/cancel — отменить текущую оценку"
     )
 
 
 async def review_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     await update.message.reply_text(
-        "Оценка котлеты — шаг 1 из 5\n\n"
-        "ВКУС — поставь оценку от 0 до 5:",
+        "🍔 *Оценка котлеты* — шаг 1 из 5\n\n"
+        "🍽 *ВКУС* — поставь оценку от 0 до 5:",
+        parse_mode="Markdown",
         reply_markup=score_keyboard("taste"),
     )
     return TASTE
@@ -92,9 +98,10 @@ async def handle_taste(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     score = int(query.data.split(":")[1])
     context.user_data["taste"] = score
     await query.edit_message_text(
-        f"Вкус: {score}/5\n\n"
+        f"✅ Вкус: *{score}/5*\n\n"
         "Шаг 2 из 5\n\n"
-        "ВНЕШНИЙ ВИД — поставь оценку от 0 до 5:",
+        "👁 *ВНЕШНИЙ ВИД* — поставь оценку от 0 до 5:",
+        parse_mode="Markdown",
         reply_markup=score_keyboard("appearance"),
     )
     return APPEARANCE
@@ -106,10 +113,11 @@ async def handle_appearance(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     score = int(query.data.split(":")[1])
     context.user_data["appearance"] = score
     await query.edit_message_text(
-        f"Вкус: {context.user_data['taste']}/5\n"
-        f"Внешний вид: {score}/5\n\n"
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
+        f"✅ Внешний вид: *{score}/5*\n\n"
         "Шаг 3 из 5\n\n"
-        "ПЛОТНОСТЬ ТЕКСТУРЫ — поставь оценку от 0 до 5:",
+        "🖐 *ПЛОТНОСТЬ ТЕКСТУРЫ* — поставь оценку от 0 до 5:",
+        parse_mode="Markdown",
         reply_markup=score_keyboard("texture"),
     )
     return TEXTURE
@@ -121,11 +129,12 @@ async def handle_texture(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     score = int(query.data.split(":")[1])
     context.user_data["texture"] = score
     await query.edit_message_text(
-        f"Вкус: {context.user_data['taste']}/5\n"
-        f"Внешний вид: {context.user_data['appearance']}/5\n"
-        f"Плотность текстуры: {score}/5\n\n"
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
+        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
+        f"✅ Плотность текстуры: *{score}/5*\n\n"
         "Шаг 4 из 5\n\n"
-        "ЗАЖАРЕННОСТЬ — поставь оценку от 0 до 5:",
+        "🔥 *ЗАЖАРЕННОСТЬ* — поставь оценку от 0 до 5:",
+        parse_mode="Markdown",
         reply_markup=score_keyboard("roast"),
     )
     return ROAST
@@ -137,12 +146,13 @@ async def handle_roast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     score = int(query.data.split(":")[1])
     context.user_data["roast"] = score
     await query.edit_message_text(
-        f"Вкус: {context.user_data['taste']}/5\n"
-        f"Внешний вид: {context.user_data['appearance']}/5\n"
-        f"Плотность текстуры: {context.user_data['texture']}/5\n"
-        f"Зажаренность: {score}/5\n\n"
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
+        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
+        f"✅ Плотность текстуры: *{context.user_data['texture']}/5*\n"
+        f"✅ Зажаренность: *{score}/5*\n\n"
         "Шаг 5 из 5\n\n"
-        "СТАБИЛЬНОСТЬ ВКУСА — поставь оценку от 0 до 5:",
+        "🔁 *СТАБИЛЬНОСТЬ ВКУСА* — поставь оценку от 0 до 5:",
+        parse_mode="Markdown",
         reply_markup=score_keyboard("stability"),
     )
     return STABILITY
@@ -154,13 +164,14 @@ async def handle_stability(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     score = int(query.data.split(":")[1])
     context.user_data["stability"] = score
     await query.edit_message_text(
-        f"Вкус: {context.user_data['taste']}/5\n"
-        f"Внешний вид: {context.user_data['appearance']}/5\n"
-        f"Плотность текстуры: {context.user_data['texture']}/5\n"
-        f"Зажаренность: {context.user_data['roast']}/5\n"
-        f"Стабильность вкуса: {score}/5\n\n"
-        "ЗАМЕЧАНИЯ — напиши что понравилось или не понравилось.\n"
-        "Если замечаний нет — напиши: нет",
+        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
+        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
+        f"✅ Плотность текстуры: *{context.user_data['texture']}/5*\n"
+        f"✅ Зажаренность: *{context.user_data['roast']}/5*\n"
+        f"✅ Стабильность вкуса: *{score}/5*\n\n"
+        "📝 *ЗАМЕЧАНИЯ* — напиши что понравилось или не понравилось.\n"
+        "Если замечаний нет — напиши: *нет*",
+        parse_mode="Markdown",
     )
     return NOTES
 
@@ -189,38 +200,38 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     avg = total / 5
 
     summary = (
-        f"Оценка сохранена!\n\n"
-        f"Контролёр: {data['first_name']} (@{data['username']})\n"
-        f"Дата и время: {now}\n"
-        f"ID: {data['user_id']}\n\n"
-        f"Вкус: {data['taste']}/5\n"
-        f"Внешний вид: {data['appearance']}/5\n"
-        f"Плотность текстуры: {data['texture']}/5\n"
-        f"Зажаренность: {data['roast']}/5\n"
-        f"Стабильность вкуса: {data['stability']}/5\n\n"
-        f"Средний балл: {avg:.1f}/5\n\n"
-        f"Замечания: {notes}"
+        f"✅ *Оценка сохранена!*\n\n"
+        f"👤 {data['first_name']} (@{data['username']})\n"
+        f"🕐 {now}\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"🍽 Вкус: *{data['taste']}/5*\n"
+        f"👁 Внешний вид: *{data['appearance']}/5*\n"
+        f"🖐 Плотность текстуры: *{data['texture']}/5*\n"
+        f"🔥 Зажаренность: *{data['roast']}/5*\n"
+        f"🔁 Стабильность вкуса: *{data['stability']}/5*\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📊 Средний балл: *{avg:.1f}/5*\n\n"
+        f"📝 Замечания: {notes}"
     )
 
-    await update.message.reply_text(summary)
+    await update.message.reply_text(summary, parse_mode="Markdown")
 
     notification = (
-        f"НОВАЯ ОЦЕНКА КОТЛЕТЫ\n\n"
-        f"Контролёр: {data['first_name']} (@{data['username']})\n"
-        f"Дата и время: {now}\n"
-        f"ID: {data['user_id']}\n\n"
-        f"Вкус: {data['taste']}/5\n"
-        f"Внешний вид: {data['appearance']}/5\n"
-        f"Плотность текстуры: {data['texture']}/5\n"
-        f"Зажаренность: {data['roast']}/5\n"
-        f"Стабильность вкуса: {data['stability']}/5\n"
-        f"Средний балл: {avg:.1f}/5\n\n"
-        f"Замечания: {notes}"
+        f"🔔 *Новая оценка котлеты*\n\n"
+        f"👤 {data['first_name']} (@{data['username']}) | ID: `{data['user_id']}`\n"
+        f"🕐 {now}\n\n"
+        f"🍽 Вкус: *{data['taste']}/5*\n"
+        f"👁 Внешний вид: *{data['appearance']}/5*\n"
+        f"🖐 Плотность текстуры: *{data['texture']}/5*\n"
+        f"🔥 Зажаренность: *{data['roast']}/5*\n"
+        f"🔁 Стабильность вкуса: *{data['stability']}/5*\n"
+        f"📊 Средний балл: *{avg:.1f}/5*\n\n"
+        f"📝 Замечания: {notes}"
     )
 
     for admin_id in ADMIN_IDS:
         try:
-            await context.bot.send_message(chat_id=admin_id, text=notification)
+            await context.bot.send_message(chat_id=admin_id, text=notification, parse_mode="Markdown")
         except Exception as e:
             logger.error(f"Не удалось отправить уведомление {admin_id}: {e}")
 
@@ -230,13 +241,13 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    await update.message.reply_text("Оценка отменена. Напиши /review чтобы начать заново.")
+    await update.message.reply_text("❌ Оценка отменена. Напиши /review чтобы начать заново.")
     return ConversationHandler.END
 
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id not in ADMIN_IDS:
-        await update.message.reply_text("У вас нет доступа к статистике.")
+        await update.message.reply_text("⛔ У вас нет доступа к статистике.")
         return
 
     conn = sqlite3.connect("quality.db")
@@ -245,7 +256,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     total = c.fetchone()[0]
 
     if total == 0:
-        await update.message.reply_text("Оценок пока нет.")
+        await update.message.reply_text("📊 Оценок пока нет.")
         conn.close()
         return
 
@@ -262,25 +273,26 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     overall = sum(avgs) / 5
 
     text = (
-        f"СТАТИСТИКА КОНТРОЛЯ КАЧЕСТВА\n\n"
-        f"Всего оценок: {total}\n\n"
+        f"📊 *Статистика контроля качества*\n\n"
+        f"Всего оценок: *{total}*\n\n"
         f"Средние показатели:\n"
-        f"Вкус: {avgs[0]:.2f}/5\n"
-        f"Внешний вид: {avgs[1]:.2f}/5\n"
-        f"Плотность текстуры: {avgs[2]:.2f}/5\n"
-        f"Зажаренность: {avgs[3]:.2f}/5\n"
-        f"Стабильность вкуса: {avgs[4]:.2f}/5\n"
-        f"Общий средний балл: {overall:.2f}/5\n\n"
-        f"Последние 5 оценок:\n"
+        f"🍽 Вкус: *{avgs[0]:.2f}/5*\n"
+        f"👁 Внешний вид: *{avgs[1]:.2f}/5*\n"
+        f"🖐 Плотность текстуры: *{avgs[2]:.2f}/5*\n"
+        f"🔥 Зажаренность: *{avgs[3]:.2f}/5*\n"
+        f"🔁 Стабильность вкуса: *{avgs[4]:.2f}/5*\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📈 Общий средний балл: *{overall:.2f}/5*\n\n"
+        f"*Последние 5 оценок:*\n"
     )
 
     for r in recent:
         avg_r = (r[2] + r[3] + r[4] + r[5] + r[6]) / 5
-        text += f"\n{r[0]} (@{r[1]}) — {r[8]}: {avg_r:.1f}/5"
+        text += f"\n• {r[0]} (@{r[1]}) — {r[8]}: *{avg_r:.1f}/5*"
         if r[7] and r[7].lower() != "нет":
-            text += f"\n  Замечания: {r[7]}"
+            text += f"\n  📝 {r[7]}"
 
-    await update.message.reply_text(text)
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 
 def main() -> None:
@@ -299,6 +311,9 @@ def main() -> None:
             NOTES:      [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_notes)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+        per_message=False,
+        per_chat=True,
+        per_user=True,
     )
 
     application.add_handler(CommandHandler("start", start))
@@ -306,7 +321,23 @@ def main() -> None:
     application.add_handler(CommandHandler("stats", stats))
 
     logger.info("Бот запущен...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+
+    if WEBHOOK_URL:
+        # Webhook режим для продакшена (Render Web Service)
+        logger.info(f"Запуск в webhook режиме на порту {PORT}")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            webhook_url=WEBHOOK_URL,
+            drop_pending_updates=True,
+        )
+    else:
+        # Polling режим для локальной разработки
+        logger.info("Запуск в polling режиме (локально)")
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
+        )
 
 
 if __name__ == "__main__":

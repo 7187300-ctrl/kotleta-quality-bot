@@ -1,24 +1,29 @@
 import logging
 import sqlite3
-import os
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application, CommandHandler, CallbackQueryHandler,
-    MessageHandler, filters, ContextTypes, ConversationHandler
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+    ConversationHandler,
 )
 
-# === НАСТРОЙКИ ===
 BOT_TOKEN = "8891826393:AAF2q6sBRf1StTpKsxZmbMQ0bhjAUMMMzrI"
-ADMIN_IDS = [213356772, 300594899]  # Eugene, Dmitriy
+ADMIN_IDS = [213356772, 300594899]
 
-# Состояния диалога
 TASTE, APPEARANCE, TEXTURE, ROAST, STABILITY, NOTES = range(6)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-# === БАЗА ДАННЫХ ===
+
 def init_db():
     conn = sqlite3.connect("quality.db")
     c = conn.cursor()
@@ -40,6 +45,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def save_review(data: dict):
     conn = sqlite3.connect("quality.db")
     c = conn.cursor()
@@ -56,123 +62,118 @@ def save_review(data: dict):
     conn.commit()
     conn.close()
 
-# === КЛАВИАТУРА ОЦЕНОК ===
-def score_keyboard(step: str):
-    buttons = [
-        [InlineKeyboardButton(str(i), callback_data=f"{step}:{i}") for i in range(0, 6)]
-    ]
+
+def score_keyboard(step: str) -> InlineKeyboardMarkup:
+    buttons = [[InlineKeyboardButton(str(i), callback_data=f"{step}:{i}") for i in range(6)]]
     return InlineKeyboardMarkup(buttons)
 
-CRITERIA_LABELS = {
-    "taste":      "🍽 Вкус",
-    "appearance": "👁 Внешний вид",
-    "texture":    "🖐 Плотность текстуры",
-    "roast":      "🔥 Зажаренность",
-    "stability":  "🔁 Стабильность вкуса",
-}
 
-# === ХЕНДЛЕРЫ ===
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "👋 Добро пожаловать в систему контроля качества!\n\n"
-        "Нажми /review чтобы начать оценку котлеты."
+        "Добро пожаловать в систему контроля качества!\n\n"
+        "Напиши /review чтобы начать оценку котлеты.\n"
+        "Напиши /stats чтобы посмотреть статистику (только для администраторов)."
     )
 
-async def review_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def review_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     await update.message.reply_text(
-        "🍔 *Оценка котлеты*\n\nШаг 1 из 5\n\n"
-        "🍽 *Вкус* — поставь оценку от 0 до 5:",
-        parse_mode="Markdown",
-        reply_markup=score_keyboard("taste")
+        "Оценка котлеты — шаг 1 из 5\n\n"
+        "ВКУС — поставь оценку от 0 до 5:",
+        reply_markup=score_keyboard("taste"),
     )
     return TASTE
 
-async def handle_taste(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_taste(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     score = int(query.data.split(":")[1])
     context.user_data["taste"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{score}/5*\n\nШаг 2 из 5\n\n"
-        f"👁 *Внешний вид* — поставь оценку от 0 до 5:",
-        parse_mode="Markdown",
-        reply_markup=score_keyboard("appearance")
+        f"Вкус: {score}/5\n\n"
+        "Шаг 2 из 5\n\n"
+        "ВНЕШНИЙ ВИД — поставь оценку от 0 до 5:",
+        reply_markup=score_keyboard("appearance"),
     )
     return APPEARANCE
 
-async def handle_appearance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_appearance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     score = int(query.data.split(":")[1])
     context.user_data["appearance"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{score}/5*\n\nШаг 3 из 5\n\n"
-        f"🖐 *Плотность текстуры* — поставь оценку от 0 до 5:",
-        parse_mode="Markdown",
-        reply_markup=score_keyboard("texture")
+        f"Вкус: {context.user_data['taste']}/5\n"
+        f"Внешний вид: {score}/5\n\n"
+        "Шаг 3 из 5\n\n"
+        "ПЛОТНОСТЬ ТЕКСТУРЫ — поставь оценку от 0 до 5:",
+        reply_markup=score_keyboard("texture"),
     )
     return TEXTURE
 
-async def handle_texture(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_texture(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     score = int(query.data.split(":")[1])
     context.user_data["texture"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
-        f"✅ Плотность текстуры: *{score}/5*\n\nШаг 4 из 5\n\n"
-        f"🔥 *Зажаренность* — поставь оценку от 0 до 5:",
-        parse_mode="Markdown",
-        reply_markup=score_keyboard("roast")
+        f"Вкус: {context.user_data['taste']}/5\n"
+        f"Внешний вид: {context.user_data['appearance']}/5\n"
+        f"Плотность текстуры: {score}/5\n\n"
+        "Шаг 4 из 5\n\n"
+        "ЗАЖАРЕННОСТЬ — поставь оценку от 0 до 5:",
+        reply_markup=score_keyboard("roast"),
     )
     return ROAST
 
-async def handle_roast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_roast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     score = int(query.data.split(":")[1])
     context.user_data["roast"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
-        f"✅ Плотность текстуры: *{context.user_data['texture']}/5*\n"
-        f"✅ Зажаренность: *{score}/5*\n\nШаг 5 из 5\n\n"
-        f"🔁 *Стабильность вкуса* — поставь оценку от 0 до 5:",
-        parse_mode="Markdown",
-        reply_markup=score_keyboard("stability")
+        f"Вкус: {context.user_data['taste']}/5\n"
+        f"Внешний вид: {context.user_data['appearance']}/5\n"
+        f"Плотность текстуры: {context.user_data['texture']}/5\n"
+        f"Зажаренность: {score}/5\n\n"
+        "Шаг 5 из 5\n\n"
+        "СТАБИЛЬНОСТЬ ВКУСА — поставь оценку от 0 до 5:",
+        reply_markup=score_keyboard("stability"),
     )
     return STABILITY
 
-async def handle_stability(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_stability(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     score = int(query.data.split(":")[1])
     context.user_data["stability"] = score
     await query.edit_message_text(
-        f"✅ Вкус: *{context.user_data['taste']}/5*\n"
-        f"✅ Внешний вид: *{context.user_data['appearance']}/5*\n"
-        f"✅ Плотность текстуры: *{context.user_data['texture']}/5*\n"
-        f"✅ Зажаренность: *{context.user_data['roast']}/5*\n"
-        f"✅ Стабильность вкуса: *{score}/5*\n\n"
-        f"📝 *Замечания* — напиши, что понравилось или не понравилось.\n"
-        f"Если замечаний нет — напиши *нет*:",
-        parse_mode="Markdown"
+        f"Вкус: {context.user_data['taste']}/5\n"
+        f"Внешний вид: {context.user_data['appearance']}/5\n"
+        f"Плотность текстуры: {context.user_data['texture']}/5\n"
+        f"Зажаренность: {context.user_data['roast']}/5\n"
+        f"Стабильность вкуса: {score}/5\n\n"
+        "ЗАМЕЧАНИЯ — напиши что понравилось или не понравилось.\n"
+        "Если замечаний нет — напиши: нет",
     )
     return NOTES
 
-async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     notes = update.message.text
     now = datetime.now().strftime("%d.%m.%Y %H:%M")
 
     data = {
         "user_id": user.id,
-        "username": user.username or "—",
-        "first_name": user.first_name or "—",
+        "username": user.username or "нет",
+        "first_name": user.first_name or "нет",
         "taste": context.user_data["taste"],
         "appearance": context.user_data["appearance"],
         "texture": context.user_data["texture"],
@@ -188,59 +189,54 @@ async def handle_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     avg = total / 5
 
     summary = (
-        f"✅ *Оценка сохранена!*\n\n"
-        f"👤 Контролёр: {data['first_name']} (@{data['username']})\n"
-        f"🕐 Дата и время: {now}\n"
-        f"🆔 ID: `{data['user_id']}`\n\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"🍽 Вкус: *{data['taste']}/5*\n"
-        f"👁 Внешний вид: *{data['appearance']}/5*\n"
-        f"🖐 Плотность текстуры: *{data['texture']}/5*\n"
-        f"🔥 Зажаренность: *{data['roast']}/5*\n"
-        f"🔁 Стабильность вкуса: *{data['stability']}/5*\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"📊 Средний балл: *{avg:.1f}/5*\n\n"
-        f"📝 Замечания: {notes}"
+        f"Оценка сохранена!\n\n"
+        f"Контролёр: {data['first_name']} (@{data['username']})\n"
+        f"Дата и время: {now}\n"
+        f"ID: {data['user_id']}\n\n"
+        f"Вкус: {data['taste']}/5\n"
+        f"Внешний вид: {data['appearance']}/5\n"
+        f"Плотность текстуры: {data['texture']}/5\n"
+        f"Зажаренность: {data['roast']}/5\n"
+        f"Стабильность вкуса: {data['stability']}/5\n\n"
+        f"Средний балл: {avg:.1f}/5\n\n"
+        f"Замечания: {notes}"
     )
 
-    await update.message.reply_text(summary, parse_mode="Markdown")
+    await update.message.reply_text(summary)
 
-    # Отправка уведомлений администраторам
     notification = (
-        f"🔔 *Новая оценка котлеты*\n\n"
-        f"👤 {data['first_name']} (@{data['username']}) | ID: `{data['user_id']}`\n"
-        f"🕐 {now}\n\n"
-        f"🍽 Вкус: *{data['taste']}/5*\n"
-        f"👁 Внешний вид: *{data['appearance']}/5*\n"
-        f"🖐 Плотность текстуры: *{data['texture']}/5*\n"
-        f"🔥 Зажаренность: *{data['roast']}/5*\n"
-        f"🔁 Стабильность вкуса: *{data['stability']}/5*\n"
-        f"📊 Средний балл: *{avg:.1f}/5*\n\n"
-        f"📝 Замечания: {notes}"
+        f"НОВАЯ ОЦЕНКА КОТЛЕТЫ\n\n"
+        f"Контролёр: {data['first_name']} (@{data['username']})\n"
+        f"Дата и время: {now}\n"
+        f"ID: {data['user_id']}\n\n"
+        f"Вкус: {data['taste']}/5\n"
+        f"Внешний вид: {data['appearance']}/5\n"
+        f"Плотность текстуры: {data['texture']}/5\n"
+        f"Зажаренность: {data['roast']}/5\n"
+        f"Стабильность вкуса: {data['stability']}/5\n"
+        f"Средний балл: {avg:.1f}/5\n\n"
+        f"Замечания: {notes}"
     )
 
     for admin_id in ADMIN_IDS:
         try:
-            await context.bot.send_message(
-                chat_id=admin_id,
-                text=notification,
-                parse_mode="Markdown"
-            )
+            await context.bot.send_message(chat_id=admin_id, text=notification)
         except Exception as e:
             logger.error(f"Не удалось отправить уведомление {admin_id}: {e}")
 
     context.user_data.clear()
     return ConversationHandler.END
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    await update.message.reply_text("❌ Оценка отменена. Напиши /review чтобы начать заново.")
+    await update.message.reply_text("Оценка отменена. Напиши /review чтобы начать заново.")
     return ConversationHandler.END
 
-# === КОМАНДА /stats ===
-async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id not in ADMIN_IDS:
-        await update.message.reply_text("⛔ У вас нет доступа к статистике.")
+        await update.message.reply_text("У вас нет доступа к статистике.")
         return
 
     conn = sqlite3.connect("quality.db")
@@ -249,16 +245,11 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = c.fetchone()[0]
 
     if total == 0:
-        await update.message.reply_text("📊 Оценок пока нет.")
+        await update.message.reply_text("Оценок пока нет.")
         conn.close()
         return
 
-    c.execute("""
-        SELECT
-            AVG(taste), AVG(appearance), AVG(texture),
-            AVG(roast), AVG(stability)
-        FROM reviews
-    """)
+    c.execute("SELECT AVG(taste), AVG(appearance), AVG(texture), AVG(roast), AVG(stability) FROM reviews")
     avgs = c.fetchone()
 
     c.execute("""
@@ -271,51 +262,52 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     overall = sum(avgs) / 5
 
     text = (
-        f"📊 *Статистика контроля качества*\n\n"
-        f"Всего оценок: *{total}*\n\n"
+        f"СТАТИСТИКА КОНТРОЛЯ КАЧЕСТВА\n\n"
+        f"Всего оценок: {total}\n\n"
         f"Средние показатели:\n"
-        f"🍽 Вкус: *{avgs[0]:.2f}/5*\n"
-        f"👁 Внешний вид: *{avgs[1]:.2f}/5*\n"
-        f"🖐 Плотность текстуры: *{avgs[2]:.2f}/5*\n"
-        f"🔥 Зажаренность: *{avgs[3]:.2f}/5*\n"
-        f"🔁 Стабильность вкуса: *{avgs[4]:.2f}/5*\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"📈 Общий средний балл: *{overall:.2f}/5*\n\n"
-        f"*Последние 5 оценок:*\n"
+        f"Вкус: {avgs[0]:.2f}/5\n"
+        f"Внешний вид: {avgs[1]:.2f}/5\n"
+        f"Плотность текстуры: {avgs[2]:.2f}/5\n"
+        f"Зажаренность: {avgs[3]:.2f}/5\n"
+        f"Стабильность вкуса: {avgs[4]:.2f}/5\n"
+        f"Общий средний балл: {overall:.2f}/5\n\n"
+        f"Последние 5 оценок:\n"
     )
 
     for r in recent:
         avg_r = (r[2] + r[3] + r[4] + r[5] + r[6]) / 5
-        text += f"\n• {r[0]} (@{r[1]}) — {r[8]}: *{avg_r:.1f}/5*"
+        text += f"\n{r[0]} (@{r[1]}) — {r[8]}: {avg_r:.1f}/5"
         if r[7] and r[7].lower() != "нет":
-            text += f"\n  📝 {r[7]}"
+            text += f"\n  Замечания: {r[7]}"
 
-    await update.message.reply_text(text, parse_mode="Markdown")
+    await update.message.reply_text(text)
 
-# === ЗАПУСК ===
-def main():
+
+def main() -> None:
     init_db()
-    app = Application.builder().token(BOT_TOKEN).build()
+
+    application = Application.builder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("review", review_start)],
         states={
-            TASTE:      [CallbackQueryHandler(handle_taste,      pattern="^taste:")],
-            APPEARANCE: [CallbackQueryHandler(handle_appearance, pattern="^appearance:")],
-            TEXTURE:    [CallbackQueryHandler(handle_texture,    pattern="^texture:")],
-            ROAST:      [CallbackQueryHandler(handle_roast,      pattern="^roast:")],
-            STABILITY:  [CallbackQueryHandler(handle_stability,  pattern="^stability:")],
+            TASTE:      [CallbackQueryHandler(handle_taste,      pattern=r"^taste:\d$")],
+            APPEARANCE: [CallbackQueryHandler(handle_appearance, pattern=r"^appearance:\d$")],
+            TEXTURE:    [CallbackQueryHandler(handle_texture,    pattern=r"^texture:\d$")],
+            ROAST:      [CallbackQueryHandler(handle_roast,      pattern=r"^roast:\d$")],
+            STABILITY:  [CallbackQueryHandler(handle_stability,  pattern=r"^stability:\d$")],
             NOTES:      [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_notes)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(conv_handler)
-    app.add_handler(CommandHandler("stats", stats))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(conv_handler)
+    application.add_handler(CommandHandler("stats", stats))
 
     logger.info("Бот запущен...")
-    app.run_polling()
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+
 
 if __name__ == "__main__":
     main()
